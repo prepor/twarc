@@ -2,6 +2,12 @@
 
 A Simple Clojure wrapper around [Quartz Scheduler](http://www.quartz-scheduler.org/).
 
+## Artifacts
+
+```clojure
+[twarc "0.1.0"]
+```
+
 ## Why?
 
 There are a few Clojure libraries for working with Quartz, but everyone has fatal flaw (at least one):
@@ -49,7 +55,7 @@ The main disadventage of these libs is that you can't use it in right way, ie wi
 Job function accepts context passed to `make-scheduler` as first argument, and the rest of arguments are passed on job scheduling.
 
 ```clojure
-(defjob test-job
+(twarc/defjob test-job
   [ctx name message]
   (prn "Message for!" name message))
 ```
@@ -94,7 +100,7 @@ Secondly, configure Quartz for your store:
 In this example we also can see how configure job and trigger. With `:state` param job becomes Statefull job, job function accepts state as second argument and should return updated state.
 
 ```clojure
-(defjob test-statefull-job
+(twarc/defjob test-statefull-job
   [ctx state i]
   (prn "State!" state)
   (update-in state [:counter] + i))
