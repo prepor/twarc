@@ -71,7 +71,8 @@ Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/d
 Let's run it!
 ```clojure
 (with-sched sched props
-  (test-job sched ["Andrew" "Hello world"]))
+  (test-job sched ["Andrew" "Hello world"])
+  (Thread/sleep 1000))
 ```
 
 That's all. First argument is scheduler instance, second is vector of arguments and optional tail arguments are options for `schedule-job` function (job and trigger params actually, see Quartz documentation for details).
