@@ -1,6 +1,6 @@
-(defproject twarc "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject twarc "0.1.0"
+  :description "Doing Quartz in right way"
+  :url "https://github.com/prepor/twarc"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
@@ -11,4 +11,5 @@
                  [prismatic/plumbing "0.3.5"]]
   :profiles {:dev {:dependencies [[org.slf4j/slf4j-api "1.7.7"]
                                   [ch.qos.logback/logback-classic "1.1.2"]
-                                  [org.postgresql/postgresql "9.3-1102-jdbc41"]]}})
+                                  [org.postgresql/postgresql "9.3-1102-jdbc41"]]}}
+  :lein-release {:deploy-via :clojars})
