@@ -64,7 +64,7 @@ Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/d
 ```clojure
 (def props {:threadPool.class "org.quartz.simpl.SimpleThreadPool"
             :threadPool.threadCount 1
-            :plugin.triggHistory.class            "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
+            :plugin.triggHistory.class "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
             :plugin.jobHistory.class "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
 ```
 
