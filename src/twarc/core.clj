@@ -35,8 +35,9 @@
 
 (defn make-job
   [{:keys [ns name arguments identity group desc recovery durably state]
-    :or {identity (-> (UUID/randomUUID) str)}}]
-  (-> (JobBuilder/newJob (if state TwarcStatefullJob TwarcJob))
+    :or {identity (-> (UUID/randomUUID) str)}
+    :as opts}]
+  (-> (JobBuilder/newJob (if (contains? opts :state) TwarcStatefullJob TwarcJob))
       (.usingJobData (JobDataMap. {"ns" ns
                                    "name" name
                                    "arguments" arguments
