@@ -1,12 +1,19 @@
 (ns twarc.core
   (:require [com.stuartsierra.component :as component]
             [plumbing.core :refer :all]
-            [clojure.tools.logging :as log])
-  (:import [org.quartz.impl StdSchedulerFactory]
+            [clojure.tools.logging :as log]
+            [clojure.core.async :as a])
+  (:import [org.quartz.impl StdSchedulerFactory SchedulerRepository]
+           [org.quartz.impl.matchers OrMatcher NotMatcher NameMatcher KeyMatcher
+            AndMatcher StringMatcher GroupMatcher
+            EverythingMatcher]
+           [org.quartz.utils Key]
            [org.quartz.spi JobFactory]
            [org.quartz Job JobBuilder SchedulerException StatefulJob JobDataMap TriggerBuilder
-            SimpleScheduleBuilder CronScheduleBuilder]
+            SimpleScheduleBuilder CronScheduleBuilder JobListener JobKey TriggerKey]
            [java.util UUID]))
+
+(defn uuid [] (-> (UUID/randomUUID) str))
 
 (defrecord TwarcJob [f context]
   Job
@@ -35,7 +42,7 @@
 
 (defn make-job
   [{:keys [ns name arguments identity group desc recovery durably state]
-    :or {identity (-> (UUID/randomUUID) str)}
+    :or {identity (uuid)}
     :as opts}]
   (-> (JobBuilder/newJob (if (contains? opts :state) TwarcStatefullJob TwarcJob))
       (.usingJobData (JobDataMap. {"ns" ns
@@ -94,7 +101,7 @@
 (defn make-trigger
   [{:keys [start-at start-now end-at for-job modified-by-calendars identity group description
            job-data priority simple cron]
-    :or {identity (-> (UUID/randomUUID) str)}}]
+    :or {identity (uuid)}}]
   (-> (TriggerBuilder/newTrigger)
       (cond->
        group (.withIdentity identity group)
@@ -137,7 +144,7 @@
   [scheduler var arguments & {:keys [job trigger]}]
   (let [job (job-from-var var (assoc job :arguments arguments))
         trigger (make-trigger trigger)]
-    (.scheduleJob (:scheduler scheduler) job trigger)))
+    (.scheduleJob (:quartz scheduler) job trigger)))
 
 (defmacro defjob
   [n binding & body]
@@ -149,13 +156,14 @@
            [scheduler# args# & params#]
            (apply schedule-job scheduler# (var ~generated-f) args# params#)))))
 
-(defrecord Scheduler [scheduler]
+(defrecord Scheduler [quartz name listeners]
   component/Lifecycle
   (start [this]
-    (.start scheduler)
-    this)
+    (.start quartz)
+    (assoc this :listeners (atom {})))
   (stop [this]
-    (.shutdown scheduler true)
+    (.shutdown quartz true)
+    (-> (SchedulerRepository/getInstance) (.remove name))
     this))
 
 (defn start
@@ -171,11 +179,112 @@
   ([context] (make-scheduler context {}))
   ([context properties] (make-scheduler context properties {}))
   ([context properties options]
-     (let [factory (StdSchedulerFactory.
-                    (map->properties (map-keys #(str "org.quartz." (name %)) properties)))
+     (let [n (get options :name (uuid))
+           factory (StdSchedulerFactory.
+                    (->> (assoc properties
+                           :scheduler.instanceName n)
+                         (map-keys #(str "org.quartz." (name %)))
+                         (map->properties)))
            scheduler (.getScheduler factory)]
        (when-let [cals (:calendars options)]
          (doseq [[name cal replace update-triggers] cals]
            (.addCalendar scheduler name cal (boolean replace) (boolean update-triggers))))
        (.setJobFactory scheduler (make-job-factory context))
-       (map->Scheduler {:scheduler scheduler}))))
+       (map->Scheduler {:quartz scheduler :name n}))))
+
+
+;; TODO should be extendable
+(defn matcher
+  [spec & [scope]]
+  "Constructor of Quartz's matchers. Can be used in Liteners, for example.
+
+  Supported matchers:
+
+  {:key [\"some group\" \"some identity\"]}
+
+  {:name [:contains \"foo\"]}
+
+  {:group [:contains \"foo\"]}
+
+  {:everything true}
+
+  {:and [matcher1 matcher2 ... matcherN]}
+
+  {:or [matcher1 matcher2 ... matcherN]}
+
+  {:not matcher}
+
+   :contains in :name and :group matchers also can be :equals, :ends-with and :starts-with "
+  (cond
+   (:and spec) (reduce #(AndMatcher/and (matcher %1) (matcher %2)) (:and spec))
+   (:or spec) (reduce #(OrMatcher/or (matcher %1) (matcher %2)) (:or spec))
+   (:not spec) (NotMatcher/not (matcher (:not spec)))
+   (:group spec) (let [s (second (:group spec))]
+                   (case (first (:group spec))
+                     :contains (GroupMatcher/groupContains s)
+                     :ends-with (GroupMatcher/groupEndsWith s)
+                     :equals (GroupMatcher/groupEquals s)
+                     :starts-with (GroupMatcher/groupStartsWith s)))
+   (:name spec) (let [s (second (:name spec))]
+                  (case (first (:name spec))
+                    :contains (NameMatcher/nameContains s)
+                    :ends-with (NameMatcher/nameEndsWith s)
+                    :equals (NameMatcher/nameEquals s)
+                    :starts-with (NameMatcher/nameStartsWith s)))
+   (:key spec) (let [group (first (:key spec))
+                     n (second (:key spec))]
+                 (KeyMatcher/keyEquals (case scope
+                                         :job (JobKey. n group)
+                                         :trigger (TriggerKey. n group)
+                                         (Key. n group))))
+   (= :everything spec) (EverythingMatcher/allJobs)))
+
+(defn add-listener
+  "Registers Quartz listener and return core.async channel with events from
+  listener. Warning: events are written via >!! so, you should either read from this
+  channel or set non-blocking buffer.
+
+  Possible listener-types: (JobListener see
+  http://www.quartz-scheduler.org/api/2.2.1/org/quartz/JobListener.html)
+  :execution-vetoed, :to-be-executed, :was-executed
+
+  For matcher-spec syntax see matcher fn"
+  ([scheduler matcher-spec listener-type]
+     (add-listener scheduler matcher-spec listener-type nil))
+  ([scheduler matcher-spec listener-type buf-or-n]
+     (let [ch (a/chan buf-or-n)
+           n (uuid)
+           listener-scope (case listener-type
+                            (:execution-vetoed :to-be-executed :was-executed)
+                            :job)
+           ;; TODO implement Trigger and Scheduler listeners
+           listener (case listener-scope
+                      :job
+                      (reify JobListener
+                        (getName [_] n)
+                        (jobExecutionVetoed [_ context]
+                          (when (= :execution-vetoed listener-type)
+                            (a/>!! ch context)))
+                        (jobToBeExecuted [_ context]
+                          (when (= :to-be-executed listener-type)
+                            (a/>!! ch context)))
+                        (jobWasExecuted [_ context exc]
+                          (when (= :was-executed listener-type)
+                            (a/>!! ch context)))))
+           built-matcher (matcher matcher-spec listener-scope)]
+       (-> (:quartz scheduler)
+           (.getListenerManager)
+           (.addJobListener listener built-matcher))
+       (swap! (:listeners scheduler)
+              assoc ch {:listener-name n :listener-type listener-type})
+       ch)))
+
+(defn remove-listener
+  [scheduler listener]
+  (let [m (-> (:quartz scheduler)
+              (.getListenerManager))
+        meta (get-in scheduler :listeners listener)]
+    (case (:listener-type meta)
+      (:execution-vetoed :to-be-executed :was-executed)
+      (.removeJobListener m (:listener-name meta)))
+    (swap! (:listeners scheduler) dissoc listener)))

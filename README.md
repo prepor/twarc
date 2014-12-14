@@ -1,12 +1,12 @@
 # twarc
 
+[![Travis status](https://secure.travis-ci.org/prepor/twarc.png)](http://travis-ci.org/prepor/twarc)
+
 A Simple Clojure wrapper around [Quartz Scheduler](http://www.quartz-scheduler.org/).
 
 ## Artifacts
 
-```clojure
-[twarc "0.1.0"]
-```
+[![Clojars Project](http://clojars.org/twarc/latest-version.svg)](http://clojars.org/twarc)
 
 ## Why?
 
@@ -33,7 +33,7 @@ The main disadventage of these libs is that you can't use it in right way, ie wi
 * Statefull jobs
 * No magic
 * stuartsierra.component support out of box
-* Less then 200 lines of code
+* Quartz's Listeners support via core.async channels
 
 ## Usage
 
