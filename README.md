@@ -37,17 +37,20 @@ The main disadventage of these libs is that you can't use it in right way, ie wi
 
 ## Usage
 
+Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/documentation/quartz-2.2.x/configuration/)):
 ```clojure
+
 (require '[twarc.core :as twarc])
-;; the little helper for running. You can use your own infrastructure, of course
-(defmacro with-sched
-  [binding props & body]
-  `(let [~binding (-> (twarc/make-scheduler {} ~props)
-                      (twarc/start))]
-     (try
-       ~@body
-       (finally
-       (twarc/stop ~binding)))))
+
+(def props {:threadPool.class "org.quartz.simpl.SimpleThreadPool"
+            :threadPool.threadCount 1
+            :plugin.triggHistory.class "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
+            :plugin.jobHistory.class "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
+
+;; Scheduler supports component/Lifecycle protocol, so you can simply drop it to your
+;; system map. Or use some other DI system
+(def sched (-> (twarc/make-scheduler {} props) (twarc/start)))
+
 ```
 
 `defjob` macro defines two functions, in this case `test-job` and `test-job*`. `test-job*` is actual job with body provided by you and executes in Quartz's thread pool. Generated `test-job` is helper function, which can be used for schedule jobs.
@@ -60,19 +63,12 @@ Job function accepts context passed to `make-scheduler` as first argument, and t
   (prn "Message for!" name message))
 ```
 
-Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/documentation/quartz-2.2.x/configuration/)):
-```clojure
-(def props {:threadPool.class "org.quartz.simpl.SimpleThreadPool"
-            :threadPool.threadCount 1
-            :plugin.triggHistory.class "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
-            :plugin.jobHistory.class "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
-```
-
 Let's run it!
 ```clojure
-(with-sched sched props
-  (test-job sched ["Andrew" "Hello world"])
-  (Thread/sleep 1000))
+;; If you use cider, note that Quartz threads know nothing about repl's stdout. So watch
+;; messages in nrepl-server buffer
+
+(test-job sched ["Andrew" "Hello world"])
 ```
 
 That's all. First argument is scheduler instance, second is vector of arguments and optional tail arguments are options for `schedule-job` function (job and trigger params actually, see Quartz documentation for details).
@@ -83,7 +79,7 @@ You can persist your jobs and triggers in JDBC-store.
 
 First of all, you need create tables, see these scripts - http://svn.terracotta.org/svn/quartz/tags/quartz-2.2.1/distribution/src/main/assembly/root/docs/dbTables/
 
-Secondly, configure Quartz for your store:
+Secondly, configure Quartz for your store. You also should use well defined name for your scheduler:
 
 ```clojure
 (def persistent-props
@@ -96,6 +92,9 @@ Secondly, configure Quartz for your store:
     :dataSource.db.URL "jdbc:postgresql://localhost:5432/db_name"
     :dataSource.db.user "user"
     :dataSource.db.password "pass"))
+
+(def persistent-sched (-> (twarc/make-scheduler {} persistent-props {:name "main-sched"})
+                          (twarc/start)))
 ```
 
 In this example we also can see how configure job and trigger. With `:state` param job becomes Statefull job, job function accepts state as second argument and should return updated state.
@@ -106,21 +105,32 @@ In this example we also can see how configure job and trigger. With `:state` par
   (prn "State!" state)
   (update-in state [:counter] + i))
 
-(with-sched sched persistent-props
-  (test-statefull-job sched [4]
-                      :job {:state {:counter 1}}
-                      :trigger {:simple {:repeat 10 :interval 1000}})
+(test-statefull-job persistent-sched [4]
+                    :job {:state {:counter 1}}
+                    :trigger {:simple {:repeat :inf :interval 1000}})
 
-  (Thread/sleep 4000))
 ```
 
-And now start new scheduler again without scheduling task. Our previously scheduled task will continue executing
+And now stop and start new scheduler without scheduling task. Our previously scheduled task will continue executing
 
 ```clojure
-(with-sched sched persistent-props
-  (Thread/sleep 4000))
+(twarc/stop persistent-sched)
+(def persistent-sched2 (-> (twarc/make-scheduler {} persistent-props {:name "main-sched"})
+                           (twarc/start)))
 ```
 
+### Listeners
+
+You can define listeners of some events with core.async channels.
+
+```clojure
+(require '[clojure.core.async :as a])
+(def executed (twarc/add-listener persistent-sched2 {:everything true} :was-executed))
+
+(loop []
+  (prn "--EXECUTED!" (->  (a/<!! executed) .getJobDetail .getJobDataMap (get "state")))
+  (recur))
+```
 
 ## License
 
