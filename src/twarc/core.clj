@@ -141,10 +141,10 @@
               :name (-> var meta :name str))))
 
 (defn schedule-job
-  [scheduler var arguments & {:keys [job trigger]}]
+  [scheduler var arguments & {:keys [job trigger replace] :or {replace false}}]
   (let [job (job-from-var var (assoc job :arguments arguments))
         trigger (make-trigger trigger)]
-    (.scheduleJob (::quartz scheduler) job trigger)))
+    (.scheduleJob (::quartz scheduler) job #{trigger} replace)))
 
 (defmacro defjob
   [n binding & body]
