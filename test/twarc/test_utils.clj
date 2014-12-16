@@ -15,7 +15,7 @@
 
 (defn with-scheduler
   [f]
-  (binding [*scheduler* (-> (twarc/make-scheduler {} {:threadPool.threadCount 1})
+  (binding [*scheduler* (-> (twarc/make-scheduler {:threadPool.threadCount 1})
                             (twarc/start))]
     (try
       (f)

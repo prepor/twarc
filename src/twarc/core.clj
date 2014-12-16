@@ -15,20 +15,20 @@
 
 (defn uuid [] (-> (UUID/randomUUID) str))
 
-(defrecord TwarcJob [f context]
+(defrecord TwarcJob [f scheduler]
   Job
   (execute [_ execution-context]
     (let [detail (.getJobDetail execution-context)
           data-map (.getJobDataMap detail)]
-      (apply f (assoc context ::execution-context execution-context)
+      (apply f (assoc scheduler ::execution-context execution-context)
              (get data-map "arguments")))))
 
-(defrecord TwarcStatefullJob [f context]
+(defrecord TwarcStatefullJob [f scheduler]
   StatefulJob
   (execute [_ execution-context]
     (let [detail (.getJobDetail execution-context)
           data-map (.getJobDataMap detail)
-          result (apply f (assoc context ::execution-context execution-context)
+          result (apply f (assoc scheduler ::execution-context execution-context)
                         (get data-map "state")
                         (get data-map "arguments"))]
       (.put data-map "state" result))))
@@ -119,9 +119,9 @@
       (.build)))
 
 (defn make-job-factory
-  [context]
+  [scheduler]
   (reify JobFactory
-    (newJob [this bundle scheduler]
+    (newJob [this bundle quartz]
       (let [detail (.getJobDetail bundle)
             data-map (.getJobDataMap detail)
             class (.getJobClass detail)
@@ -130,7 +130,7 @@
           (log/debugf "Producing instance of Job '%s', symbol=%s" (.getKey detail) sym)
           (let [var (resolve sym)
                 ctor (.getDeclaredConstructor class (into-array [Object Object]))]
-            (.newInstance ctor (into-array Object [@var context])))
+            (.newInstance ctor (into-array Object [@var scheduler])))
           (catch Exception e
             (throw (SchedulerException. (format "Problem resolving symbol '%s'" sym)))))))))
 
@@ -144,7 +144,7 @@
   [scheduler var arguments & {:keys [job trigger]}]
   (let [job (job-from-var var (assoc job :arguments arguments))
         trigger (make-trigger trigger)]
-    (.scheduleJob (:quartz scheduler) job trigger)))
+    (.scheduleJob (::quartz scheduler) job trigger)))
 
 (defmacro defjob
   [n binding & body]
@@ -156,14 +156,14 @@
            [scheduler# args# & params#]
            (apply schedule-job scheduler# (var ~generated-f) args# params#)))))
 
-(defrecord Scheduler [quartz name listeners]
+(defrecord Scheduler []
   component/Lifecycle
   (start [this]
-    (.start quartz)
-    (assoc this :listeners (atom {})))
+    (.start (::quartz this))
+    (assoc this ::listeners (atom {})))
   (stop [this]
-    (.shutdown quartz true)
-    (-> (SchedulerRepository/getInstance) (.remove name))
+    (.shutdown (::quartz this) true)
+    (-> (SchedulerRepository/getInstance) (.remove (::name this)))
     this))
 
 (defn start
@@ -176,22 +176,21 @@
 
 (defn make-scheduler
   ([] (make-scheduler {}))
-  ([context] (make-scheduler context {}))
-  ([context properties] (make-scheduler context properties {}))
-  ([context properties options]
+  ([properties] (make-scheduler properties {}))
+  ([properties options]
      (let [n (get options :name (uuid))
            factory (StdSchedulerFactory.
                     (->> (assoc properties
                            :scheduler.instanceName n)
                          (map-keys #(str "org.quartz." (name %)))
                          (map->properties)))
-           scheduler (.getScheduler factory)]
+           quartz (.getScheduler factory)]
        (when-let [cals (:calendars options)]
          (doseq [[name cal replace update-triggers] cals]
-           (.addCalendar scheduler name cal (boolean replace) (boolean update-triggers))))
-       (.setJobFactory scheduler (make-job-factory context))
-       (map->Scheduler {:quartz scheduler :name n}))))
-
+           (.addCalendar quartz name cal (boolean replace) (boolean update-triggers))))
+       (let [scheduler (map->Scheduler {::quartz quartz ::name n})]
+         (.setJobFactory quartz (make-job-factory scheduler))
+         scheduler))))
 
 ;; TODO should be extendable
 (defn matcher
@@ -272,19 +271,19 @@
                           (when (= :was-executed listener-type)
                             (a/>!! ch context)))))
            built-matcher (matcher matcher-spec listener-scope)]
-       (-> (:quartz scheduler)
+       (-> (::quartz scheduler)
            (.getListenerManager)
            (.addJobListener listener built-matcher))
-       (swap! (:listeners scheduler)
+       (swap! (::listeners scheduler)
               assoc ch {:listener-name n :listener-type listener-type})
        ch)))
 
 (defn remove-listener
   [scheduler listener]
-  (let [m (-> (:quartz scheduler)
+  (let [m (-> (::quartz scheduler)
               (.getListenerManager))
-        meta (get-in scheduler :listeners listener)]
+        meta (get-in scheduler ::listeners listener)]
     (case (:listener-type meta)
       (:execution-vetoed :to-be-executed :was-executed)
       (.removeJobListener m (:listener-name meta)))
-    (swap! (:listeners scheduler) dissoc listener)))
+    (swap! (::listeners scheduler) dissoc listener)))

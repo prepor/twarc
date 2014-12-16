@@ -47,19 +47,21 @@ Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/d
             :plugin.triggHistory.class "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
             :plugin.jobHistory.class "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
 
-;; Scheduler supports component/Lifecycle protocol, so you can simply drop it to your
-;; system map. Or use some other DI system
-(def sched (-> (twarc/make-scheduler {} props) (twarc/start)))
+;; Scheduler supports component/Lifecycle protocol and clojure.lang.Associative (its
+;; clojure record), so you can simply drop it to your system map. Or use some other DI
+;; system
+
+(def sched (-> (twarc/make-scheduler props) (twarc/start)))
 
 ```
 
 `defjob` macro defines two functions, in this case `test-job` and `test-job*`. `test-job*` is actual job with body provided by you and executes in Quartz's thread pool. Generated `test-job` is helper function, which can be used for schedule jobs.
 
-Job function accepts context passed to `make-scheduler` as first argument, and the rest of arguments are passed on job scheduling.
+Job function accepts scheduler instance as first argument, and the rest of arguments are passed on job scheduling.
 
 ```clojure
 (twarc/defjob test-job
-  [ctx name message]
+  [scheduler name message]
   (prn "Message for!" name message))
 ```
 
@@ -101,7 +103,7 @@ In this example we also can see how configure job and trigger. With `:state` par
 
 ```clojure
 (twarc/defjob test-statefull-job
-  [ctx state i]
+  [scheduler state i]
   (prn "State!" state)
   (update-in state [:counter] + i))
 

@@ -4,11 +4,11 @@
             [twarc.test-utils :refer [async-res with-scheduler *scheduler*]]))
 
 (twarc/defjob simple-job
-  [ctx first-name last-name]
+  [scheduler first-name last-name]
   nil)
 
 (twarc/defjob statefull-job
-  [ctx state]
+  [scheduler state]
   (str state "(.)"))
 
 (use-fixtures :each with-scheduler)
