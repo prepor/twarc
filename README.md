@@ -95,7 +95,7 @@ Secondly, configure Quartz for your store. You also should use well defined name
     :dataSource.db.user "user"
     :dataSource.db.password "pass"))
 
-(def persistent-sched (-> (twarc/make-scheduler {} persistent-props {:name "main-sched"})
+(def persistent-sched (-> (twarc/make-scheduler persistent-props {:name "main-sched"})
                           (twarc/start)))
 ```
 
@@ -117,7 +117,7 @@ And now stop and start new scheduler without scheduling task. Our previously sch
 
 ```clojure
 (twarc/stop persistent-sched)
-(def persistent-sched2 (-> (twarc/make-scheduler {} persistent-props {:name "main-sched"})
+(def persistent-sched2 (-> (twarc/make-scheduler persistent-props {:name "main-sched"})
                            (twarc/start)))
 ```
 
