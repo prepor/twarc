@@ -15,6 +15,8 @@
 
 
 (defn make-job
+  "If state is passed, job will be statefull, ie on each invocation state will be passed to
+  job. Result of job's execution will be the new state"
   [{:keys [ns name arguments identity group desc recovery durably state]
     :or {identity (impl/uuid)}
     :as opts}]
@@ -76,7 +78,7 @@
   "Most of the options are obvious and simply passed to TriggerBuilder. See
   http://www.quartz-scheduler.org/api/2.2.1/org/quartz/TriggerBuilder.html for details.
 
-  Most interesting part of trigger is definition of sheduler. It can be simple or cron. For
+  Most interesting part of trigger is definition of scheduler. It can be simple or cron. For
   example:
 
   (make-trigger {:simple {:repeat :inf :interval 10000}})
@@ -86,7 +88,7 @@
   Cron can be string or map:
 
   (make-trigger {:cron {:expression \"0 0 3 * 2 ?\" :misfire-handling :ignore-misfires
-  :time-zone (TimeZone/getTimeZone \"America/Los_Angeles\")}})"
+                        :time-zone (TimeZone/getTimeZone \"America/Los_Angeles\")}})"
   [{:keys [start-at start-now end-at for-job modified-by-calendars identity group description
            job-data priority simple cron]
     :or {identity (impl/uuid)}}]
@@ -122,7 +124,7 @@
               :name (-> var meta :name str))))
 
 (defn schedule-job
-  "Add job and trigger to scheduler. Job will be executed as: (apply @var scheduler
+  "Adds job and trigger to scheduler. Job will be executed as: (apply @var scheduler
   arguments). For statefull jobs as: (apply @var scheduler state arguments). For job and
   trigger parameters see make-job and make-trigger.
 
