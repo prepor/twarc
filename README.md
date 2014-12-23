@@ -29,7 +29,7 @@ The main disadventage of these libs is that you can't use it in right way, ie wi
 * No global state
 * You can pass any instance-aware context to jobs
 * Datastructure-centric API (see examples)
-* Jobs are usual vars with function (defn)
+* Jobs are usual vars with function (ie defn)
 * Statefull jobs
 * No magic
 * stuartsierra.component support out of box
@@ -74,6 +74,31 @@ Let's run it!
 ```
 
 That's all. First argument is scheduler instance, second is vector of arguments and optional tail arguments are options for `schedule-job` function (job and trigger params actually, see Quartz documentation for details).
+
+You can schedule execution of any defn without helper:
+
+```clojure
+(defn test-job2
+  [scheduler name message]
+  (prn "Message  from!" name message))
+
+(twarc/schedule-job sched #'test-job2 ["Petr" "Hi world!"])
+```
+
+Define simple or cron trigger via map:
+
+```clojure
+(test-job sched ["Andrew" "Hello world"] :trigger {:simple {:repeat 5 :interval 1000}})
+
+(test-job sched ["Andrew" "Hello world"]
+          :job {:identity "eternal job"}
+          :trigger {:cron "*/10 * * * * ?"})
+
+(twarc/delete-job sched "eternal job")
+```
+
+
+
 
 ### Persistent JobStore
 

@@ -35,4 +35,13 @@
 
       (let [res (async-res listener)
             data-map (-> (.getJobDetail res) (.getJobDataMap))]
-        (is (= "(.)(.)(.)" (get data-map "state")))))))
+        (is (= "(.)(.)(.)" (get data-map "state"))))))
+
+  (testing "named jobs"
+    (is (false? (twarc/check-job-exists *scheduler* "task-3")))
+    (simple-job *scheduler* ["Petr" "Yanovich"]
+                :job {:identity "task-3"}
+                :trigger {:cron "*/10 * * * * ?"})
+    (is (true? (twarc/check-job-exists *scheduler* "task-3")))
+    (twarc/delete-job *scheduler* "task-3")
+    (is (false? (twarc/check-job-exists *scheduler* "task-3")))))
