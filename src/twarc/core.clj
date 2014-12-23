@@ -11,27 +11,10 @@
            [org.quartz.spi JobFactory]
            [org.quartz Job JobBuilder SchedulerException StatefulJob JobDataMap TriggerBuilder
             SimpleScheduleBuilder CronScheduleBuilder JobListener JobKey TriggerKey]
-           [java.util UUID]))
+           [java.util UUID]
+           [twarc TwarcJob TwarcStatefullJob]))
 
 (defn uuid [] (-> (UUID/randomUUID) str))
-
-(defrecord TwarcJob [f scheduler]
-  Job
-  (execute [_ execution-context]
-    (let [detail (.getJobDetail execution-context)
-          data-map (.getJobDataMap detail)]
-      (apply f (assoc scheduler ::execution-context execution-context)
-             (get data-map "arguments")))))
-
-(defrecord TwarcStatefullJob [f scheduler]
-  StatefulJob
-  (execute [_ execution-context]
-    (let [detail (.getJobDetail execution-context)
-          data-map (.getJobDataMap detail)
-          result (apply f (assoc scheduler ::execution-context execution-context)
-                        (get data-map "state")
-                        (get data-map "arguments"))]
-      (.put data-map "state" result))))
 
 (defn map->properties
   [m]

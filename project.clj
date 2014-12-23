@@ -10,6 +10,8 @@
                  [com.stuartsierra/component "0.2.2"]
                  [prismatic/plumbing "0.3.5"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
+  :javac-options ["-source" "1.6" "-target" "1.6" "-g"]
+  :java-source-paths ["java"]
   :profiles {:dev {:dependencies [[org.slf4j/slf4j-api "1.7.7"]
                                   [ch.qos.logback/logback-classic "1.1.2"]
                                   [org.postgresql/postgresql "9.3-1102-jdbc41"]]}}
