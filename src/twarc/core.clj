@@ -142,6 +142,7 @@
 (defrecord Scheduler []
   component/Lifecycle
   (start [this]
+    (.setJobFactory (::quartz this) (make-job-factory this))
     (.start (::quartz this))
     (assoc this ::listeners (atom {})))
   (stop [this]
@@ -171,9 +172,7 @@
        (when-let [cals (:calendars options)]
          (doseq [[name cal replace update-triggers] cals]
            (.addCalendar quartz name cal (boolean replace) (boolean update-triggers))))
-       (let [scheduler (map->Scheduler {::quartz quartz ::name n})]
-         (.setJobFactory quartz (make-job-factory scheduler))
-         scheduler))))
+       (map->Scheduler {::quartz quartz ::name n}))))
 
 ;; TODO should be extendable
 (defn matcher
