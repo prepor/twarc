@@ -1,5 +1,5 @@
 (defproject twarc "0.1.6-SNAPSHOT"
-  :description "Doing Quartz in right way"
+  :description "Doing Quartz the right way"
   :url "https://github.com/prepor/twarc"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}

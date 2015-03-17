@@ -15,8 +15,8 @@
 
 
 (defn make-job
-  "If state is passed, job will be statefull, ie on each invocation state will be passed to
-  job. Result of job's execution will be the new state"
+  "If state is passed, job will be stateful, i.e. state will be passed to the job
+  on each invocation. Job execution will result in new state."
   [{:keys [ns name arguments identity group desc recovery durably state]
     :or {identity (impl/uuid)}
     :as opts}]
@@ -75,17 +75,17 @@
         (CronScheduleBuilder/cronSchedule options))))
 
 (defn make-trigger
-  "Most of the options are obvious and simply passed to TriggerBuilder. See
+  "Most of the options are obvious and are simply passed to TriggerBuilder. See
   http://www.quartz-scheduler.org/api/2.2.1/org/quartz/TriggerBuilder.html for details.
 
-  Most interesting part of trigger is definition of scheduler. It can be simple or cron. For
-  example:
+  The most interesting part of a trigger is defining a scheduler. It may be either 
+  simple or cron. For example:
 
   (make-trigger {:simple {:repeat :inf :interval 10000}})
 
   (make-trigger {:cron \"0 0 3 * 2 ?\"})
 
-  Cron can be string or map:
+  Cron can be a string or a map:
 
   (make-trigger {:cron {:expression \"0 0 3 * 2 ?\" :misfire-handling :ignore-misfires
                         :time-zone (TimeZone/getTimeZone \"America/Los_Angeles\")}})"
@@ -125,10 +125,10 @@
 
 (defn schedule-job
   "Adds job and trigger to scheduler. Job will be executed as: (apply @var scheduler
-  arguments). For statefull jobs as: (apply @var scheduler state arguments). For job and
-  trigger parameters see make-job and make-trigger.
+  arguments), and for stateful jobs as: (apply @var scheduler state arguments).
+  For job and trigger parameters see make-job and make-trigger.
 
-  Set replace to true to update exist job and trigger"
+  Set replace to true to update existing job and trigger."
   [scheduler var arguments & {:keys [job trigger replace] :or {replace false}}]
   (let [job (job-from-var var (assoc job :arguments arguments))
         trigger (make-trigger trigger)]
@@ -183,7 +183,7 @@
 ;; TODO should be extendable
 (defn matcher
   [spec & [scope]]
-  "Constructor of Quartz's matchers. Can be used in Liteners, for example.
+  "Constructor of Quartz matchers. Can be used in Liteners, for example.
 
   Supported matchers:
 
@@ -225,15 +225,15 @@
    (= :everything spec) (EverythingMatcher/allJobs)))
 
 (defn add-listener
-  "Registers Quartz listener and return core.async channel with events from
-  listener. Warning: events are written via >!! so, you should either read from this
-  channel or set non-blocking buffer.
+  "Registers a Quartz listener and returns a core.async channel with events from the
+  listener. Warning: events are written via >!! so you should either read from this
+  channel or set a non-blocking buffer.
 
   Possible listener-types: (JobListener see
   http://www.quartz-scheduler.org/api/2.2.1/org/quartz/JobListener.html)
   :execution-vetoed, :to-be-executed, :was-executed
 
-  For matcher-spec syntax see matcher"
+  For matcher-spec syntax, see matcher"
   ([scheduler matcher-spec listener-type]
      (add-listener scheduler matcher-spec listener-type nil))
   ([scheduler matcher-spec listener-type buf-or-n]
