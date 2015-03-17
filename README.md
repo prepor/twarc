@@ -10,30 +10,30 @@ A Simple Clojure wrapper around [Quartz Scheduler](http://www.quartz-scheduler.o
 
 ## Why?
 
-There are a few Clojure libraries for working with Quartz, but everyone has fatal flaw (at least one):
+There are a few Clojure libraries for working with Quartz, but each one has a fatal flaw (at least one):
 
 * [Quartzite](http://clojurequartz.info/)
   * Global state, thread bindings
-  * You can't explicity pass some state (db connection, for example) to jobs
+  * You can't explicitly pass some type of state (e.g., a db connection) to jobs
   * Complex API
 * [Immutant Scheduling](https://github.com/immutant/immutant/tree/thedeuce/scheduling)
-  * You can't explicity pass some state (db connection, for example) to jobs
+  * You can't explicity pass some type of state (e.g., a db connection) to jobs
   * You can't use it with persistent JobStores and in Clustered environments
   * Complex dependencies
 
 
-The main disadventage of these libs is that you can't use it in right way, ie without any global state but with strong dependency management (see [stuartsierra/component](https://github.com/stuartsierra/component))
+The main disadvantage of these libs is that you can't use it in the right way, i.e. without any global state but with strong dependency management (see [stuartsierra/component](https://github.com/stuartsierra/component))
 
 ## Features
 
 * No global state
 * You can pass any instance-aware context to jobs
-* Datastructure-centric API (see examples)
-* Jobs are usual vars with function (ie defn)
-* Statefull jobs
+* Data structure-centric API (see examples)
+* Jobs are usual vars with function (i.e. defn)
+* Stateful jobs
 * No magic
-* stuartsierra.component support out of box
-* Quartz's Listeners support via core.async channels
+* stuartsierra.component support out of the box
+* Quartz' Listeners support via core.async channels
 
 ## Usage
 
@@ -48,16 +48,16 @@ Basic config (see [Quartz Configuration Reference](http://quartz-scheduler.org/d
             :plugin.jobHistory.class "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
 
 ;; Scheduler supports component/Lifecycle protocol and clojure.lang.Associative (its
-;; clojure record), so you can simply drop it to your system map. Or use some other DI
-;; system
+;; Clojure record), so you can simply drop it into your system map. Or use some other DI
+;; system.
 
 (def sched (-> (twarc/make-scheduler props) (twarc/start)))
 
 ```
 
-`defjob` macro defines two functions, in this case `test-job` and `test-job*`. `test-job*` is actual job with body provided by you and executes in Quartz's thread pool. Generated `test-job` is helper function, which can be used for schedule jobs.
+`defjob` macro defines two functions, in this case `test-job` and `test-job*`. `test-job*` is an actual job with the body provided by you. It executes in Quartz' thread pool. Generated `test-job` is a helper function that can be used for scheduling jobs.
 
-Job function accepts scheduler instance as first argument, and the rest of arguments are passed on job scheduling.
+Job function accepts scheduler instance as the first argument, and the rest of the arguments are passed on to job scheduling.
 
 ```clojure
 (twarc/defjob test-job
@@ -67,15 +67,15 @@ Job function accepts scheduler instance as first argument, and the rest of argum
 
 Let's run it!
 ```clojure
-;; If you use cider, note that Quartz threads know nothing about repl's stdout. So watch
+;; If you use cider, note that Quartz threads know nothing about repl's stdout. So keep an eye on
 ;; messages in nrepl-server buffer
 
 (test-job sched ["Andrew" "Hello world"])
 ```
 
-That's all. First argument is scheduler instance, second is vector of arguments and optional tail arguments are options for `schedule-job` function (job and trigger params actually, see Quartz documentation for details).
+That's all. The first argument is a scheduler instance; the second one is a vector of arguments, and optional tail arguments are options for `schedule-job` function (job and trigger params actually – see [Quartz documentation](http://quartz-scheduler.org/documentation) for details).
 
-You can schedule execution of any defn without helper:
+You can schedule execution of any defn without a helper:
 
 ```clojure
 (defn test-job2
@@ -104,9 +104,9 @@ Define simple or cron trigger via map:
 
 You can persist your jobs and triggers in JDBC-store.
 
-First of all, you need create tables, see these scripts - http://svn.terracotta.org/svn/quartz/tags/quartz-2.2.1/distribution/src/main/assembly/root/docs/dbTables/
+First of all, you need to create tables, see these scripts – http://svn.terracotta.org/svn/quartz/tags/quartz-2.2.1/distribution/src/main/assembly/root/docs/dbTables/
 
-Secondly, configure Quartz for your store. You also should use well defined name for your scheduler:
+Secondly, configure Quartz for your store. You should also pick a well-defined name for your scheduler:
 
 ```clojure
 (def persistent-props
@@ -124,7 +124,7 @@ Secondly, configure Quartz for your store. You also should use well defined name
                           (twarc/start)))
 ```
 
-In this example we also can see how configure job and trigger. With `:state` param job becomes Statefull job, job function accepts state as second argument and should return updated state.
+In this example we can also see how to configure a job and a trigger. With the `:state` param provided, a job becomes a Stateful job, and the job function accepts state as the second argument and should return updated state.
 
 ```clojure
 (twarc/defjob test-statefull-job
@@ -138,7 +138,7 @@ In this example we also can see how configure job and trigger. With `:state` par
 
 ```
 
-And now stop and start new scheduler without scheduling task. Our previously scheduled task will continue executing
+And now stop and start a new scheduler without scheduling a task. Our previously scheduled task will continue executing.
 
 ```clojure
 (twarc/stop persistent-sched)
@@ -161,7 +161,7 @@ You can define listeners of some events with core.async channels.
 
 ## License
 
-Copyright © 2014 Andrew Rudenko
+Copyright © 2015 Andrew Rudenko
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
