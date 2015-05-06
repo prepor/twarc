@@ -45,3 +45,10 @@
     (is (true? (twarc/check-job-exists *scheduler* "task-3")))
     (twarc/delete-job *scheduler* "task-3")
     (is (false? (twarc/check-job-exists *scheduler* "task-3")))))
+
+(deftest remove-listener-test
+  (testing "Remove a listener"
+    (let [listener (twarc/add-listener *scheduler*
+                                       {:everything true} :to-be-executed)]
+      (twarc/remove-listener *scheduler* listener)
+      (is (empty? (-> *scheduler* :twarc/listeners deref))))))
