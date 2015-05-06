@@ -78,7 +78,7 @@
   "Most of the options are obvious and are simply passed to TriggerBuilder. See
   http://www.quartz-scheduler.org/api/2.2.1/org/quartz/TriggerBuilder.html for details.
 
-  The most interesting part of a trigger is defining a scheduler. It may be either 
+  The most interesting part of a trigger is defining a scheduler. It may be either
   simple or cron. For example:
 
   (make-trigger {:simple {:repeat :inf :interval 10000}})
@@ -268,7 +268,7 @@
   [scheduler listener]
   (let [m (-> (:twarc/quartz scheduler)
               (.getListenerManager))
-        meta (get-in scheduler :twarc/listeners listener)]
+        meta (-> scheduler :twarc/listeners deref (get listener))]
     (case (:listener-type meta)
       (:execution-vetoed :to-be-executed :was-executed)
       (.removeJobListener m (:listener-name meta)))
