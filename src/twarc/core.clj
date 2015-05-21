@@ -132,7 +132,8 @@
   [scheduler var arguments & {:keys [job trigger replace] :or {replace false}}]
   (let [job (job-from-var var (assoc job :arguments arguments))
         trigger (make-trigger trigger)]
-    (.scheduleJob (:twarc/quartz scheduler) job #{trigger} replace)))
+    (.scheduleJob (:twarc/quartz scheduler) job #{trigger} replace)
+    job))
 
 (defn delete-job
   [scheduler & key]
