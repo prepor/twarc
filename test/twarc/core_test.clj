@@ -11,6 +11,12 @@
   [scheduler state]
   (str state "(.)"))
 
+(twarc/defjob check-listeners-job
+  [scheduler]
+  (.setResult
+   (:twarc/execution-context scheduler)
+   (set (keys scheduler))))
+
 (use-fixtures :each with-scheduler)
 
 (deftest defjob-test
@@ -52,3 +58,14 @@
                                        {:everything true} :to-be-executed)]
       (twarc/remove-listener *scheduler* listener)
       (is (empty? (-> *scheduler* :twarc/listeners deref))))))
+
+(deftest listeners-available
+  (testing "Listeners are available inside job"
+
+    (let [listener (twarc/add-listener *scheduler*
+                                       {:key ["test-suite" "task-listener"]} :was-executed)]
+      (check-listeners-job *scheduler* []
+                           :job {:identity "task-listener" :group "test-suite"})
+      (let [res        (async-res listener)
+            job-result (.getResult res)]
+        (is (:twarc/listeners job-result))))))

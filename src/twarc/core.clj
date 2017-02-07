@@ -179,7 +179,9 @@
        (when-let [cals (:calendars options)]
          (doseq [[name cal replace update-triggers] cals]
            (.addCalendar quartz name cal (boolean replace) (boolean update-triggers))))
-       (impl/map->Scheduler {:twarc/quartz quartz :twarc/name n}))))
+       (impl/map->Scheduler {:twarc/quartz quartz
+                             :twarc/name n
+                             :twarc/listeners (atom {})}))))
 
 ;; TODO should be extendable
 (defn matcher

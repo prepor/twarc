@@ -36,7 +36,7 @@
   (start [this]
     (.setJobFactory (:twarc/quartz this) (make-job-factory this))
     (.start (:twarc/quartz this))
-    (assoc this :twarc/listeners (atom {})))
+    this)
   (stop [this]
     (.shutdown (:twarc/quartz this) true)
     (-> (SchedulerRepository/getInstance) (.remove (:twarc/name this)))
