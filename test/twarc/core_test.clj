@@ -40,7 +40,7 @@
                            :state "(.)(.)"})
 
       (let [res (async-res listener)
-            data-map (-> (.getJobDetail res) (.getJobDataMap))]
+            data-map (.getMergedJobDataMap res)]
         (is (= "(.)(.)(.)" (get data-map "state"))))))
 
   (testing "named jobs"
