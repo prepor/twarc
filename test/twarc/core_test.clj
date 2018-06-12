@@ -50,7 +50,20 @@
                 :trigger {:cron "*/10 * * * * ?"})
     (is (true? (twarc/check-job-exists *scheduler* "task-3")))
     (twarc/delete-job *scheduler* "task-3")
-    (is (false? (twarc/check-job-exists *scheduler* "task-3")))))
+    (is (false? (twarc/check-job-exists *scheduler* "task-3"))))
+
+  (testing "trigger can override job parameters"
+    (let [listener (twarc/add-listener *scheduler*
+                                       {:key ["test-suite" "task-4"]} :to-be-executed)]
+      (simple-job *scheduler* []
+                  :job {:identity "task-4"
+                        :group "test-suite"}
+                  :trigger {:job-data {"arguments" ["Petr" "Yanovich"]}
+                            :cron "*/10 * * * * ?"})
+      (let [res (async-res listener)
+            data-map (.getMergedJobDataMap res)]
+        (is (= ["Petr" "Yanovich"] (get data-map "arguments")))
+        (is (= nil (get data-map "state")))))))
 
 (deftest remove-listener-test
   (testing "Remove a listener"
