@@ -4,7 +4,6 @@ import org.quartz.Job;
 import org.quartz.PersistJobDataAfterExecution;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import clojure.lang.IFn;
 import clojure.lang.Keyword;
@@ -23,7 +22,7 @@ public class TwarcStatefullJob implements Job {
     }
 
     public void execute(JobExecutionContext context) {
-        JobDataMap m = context.getJobDetail().getJobDataMap();
+        JobDataMap m = context.getMergedJobDataMap();
         IFn list = Clojure.var("clojure.core", "list*");
         ISeq args = (ISeq) list.invoke(scheduler.assoc(Keyword.intern("twarc", "execution-context"), context), m.get("state"), m.get("arguments"));
         Object result = f.applyTo(args);
