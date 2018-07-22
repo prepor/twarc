@@ -29,8 +29,8 @@
        group (.withIdentity identity group)
        (not group) (.withIdentity identity)
        desc (.withDescription desc)
-       durably (.withDurably)
-       recovery (.withRecovery))
+       durably (.storeDurably durably)
+       recovery (.requestRecovery recovery))
       (.build)))
 
 (defn prepare-simple
