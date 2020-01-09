@@ -196,15 +196,15 @@
 
   {:group [:contains \"foo\"]}
 
-  {:everything true}
-
   {:and [matcher1 matcher2 ... matcherN]}
 
   {:or [matcher1 matcher2 ... matcherN]}
 
   {:not matcher}
+  
+  :everything
 
-   :contains in :name and :group matchers also can be :equals, :ends-with and :starts-with "
+  :contains in :name and :group matchers also can be :equals, :ends-with and :starts-with "
   (cond
    (:and spec) (reduce #(AndMatcher/and (matcher %1) (matcher %2)) (:and spec))
    (:or spec) (reduce #(OrMatcher/or (matcher %1) (matcher %2)) (:or spec))
