@@ -104,7 +104,7 @@ Define simple or cron trigger via map:
 
 You can persist your jobs and triggers in JDBC-store.
 
-First of all, you need to create tables, see these scripts – http://svn.terracotta.org/svn/quartz/tags/quartz-2.2.1/distribution/src/main/assembly/root/docs/dbTables/
+First of all, you need to create tables, see these scripts – https://github.com/quartz-scheduler/quartz/tree/v2.3.2/quartz-core/src/main/resources/org/quartz/impl/jdbcjobstore
 
 Secondly, configure Quartz for your store. You should also pick a well-defined name for your scheduler:
 
