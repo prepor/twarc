@@ -67,5 +67,5 @@
   [f]
   (when (db-available?)
     (exec-sql-file "tables_postgres.sql")
-     (run-with-scheduler f (twarc/make-scheduler persistent-props)))
+    (run-with-scheduler f (twarc/make-scheduler persistent-props)))
   (run-with-scheduler f (twarc/make-scheduler props)))
