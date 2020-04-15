@@ -1,1 +1,6 @@
-language: clojure
+language: minimal
+services:
+  - docker
+
+script:
+- docker-compose run app lein test
