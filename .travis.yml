@@ -1,1 +1,10 @@
 language: clojure
+services:
+  - postgresql
+before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
+env:
+  global:
+    - DB_URL=jdbc:postgresql://localhost:5432/travis_ci_test
+    - DB_USER=postgres
+    - DB_PASSWORD=
