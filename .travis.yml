@@ -3,4 +3,4 @@ services:
   - docker
 
 script:
-- docker run lein test
+- docker-compose run app lein test
