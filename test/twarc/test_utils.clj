@@ -15,8 +15,8 @@
 
 
 (def pg-db {:connection-uri (System/getenv "DB_URL")
-            :user           (System/getenv "DB_USER")
-            :password       (System/getenv "DB_PASSWORD")})
+            :user (System/getenv "DB_USER")
+            :password (System/getenv "DB_PASSWORD")})
 
 
 (defn db-available? []
@@ -35,10 +35,11 @@
 
 
 (def props
-  {:threadPool.class       "org.quartz.simpl.SimpleThreadPool"
+  {:threadPool.class "org.quartz.simpl.SimpleThreadPool"
    :threadPool.threadCount 1
    :plugin.triggHistory.class
    "org.quartz.plugins.history.LoggingTriggerHistoryPlugin"
+
    :plugin.jobHistory.class
    "org.quartz.plugins.history.LoggingJobHistoryPlugin"})
 
