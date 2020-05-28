@@ -1,8 +1,8 @@
 (ns twarc.core
   (:require [com.stuartsierra.component :as component]
-            [plumbing.core :refer :all]
             [clojure.tools.logging :as log]
             [clojure.core.async :as a]
+            [twarc.utils :as utils]
             [twarc.impl.core :as impl])
   (:import [org.quartz.impl StdSchedulerFactory]
            [org.quartz.impl.matchers OrMatcher NotMatcher NameMatcher KeyMatcher
@@ -70,7 +70,7 @@
                     (.withMisfireHandlingInstructionFireAndProceed schedule)
                     :ignore-misfires
                     (.withMisfireHandlingInstructionIgnoreMisfires schedule)))
-            (?> (:time-zone options)
+            (utils/?> (:time-zone options)
                 (.inTimeZone (:time-zone options))))
         (CronScheduleBuilder/cronSchedule options))))
 
@@ -173,7 +173,7 @@
            factory (StdSchedulerFactory.
                     (->> (assoc properties
                            :scheduler.instanceName n)
-                         (map-keys #(str "org.quartz." (name %)))
+                         (utils/map-keys #(str "org.quartz." (name %)))
                          (impl/map->properties)))
            quartz (.getScheduler factory)]
        (when-let [cals (:calendars options)]

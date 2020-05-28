@@ -8,7 +8,6 @@
                  [org.quartz-scheduler/quartz-jobs "2.3.2"]
                  [org.clojure/tools.logging "1.0.0"]
                  [com.stuartsierra/component "1.0.0"]
-                 [prismatic/plumbing "0.5.5"]
                  [org.clojure/core.async "1.1.587"]
                  [org.clojure/java.jdbc "0.7.11"]]
   :javac-options ["-source" "1.6" "-target" "1.6" "-g"]
