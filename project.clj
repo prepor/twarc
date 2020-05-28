@@ -1,4 +1,4 @@
-(defproject twarc "0.1.13"
+(defproject twarc "0.1.14"
   :description "Doing Quartz the right way"
   :url "https://github.com/prepor/twarc"
   :license {:name "Eclipse Public License",
