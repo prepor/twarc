@@ -1,4 +1,4 @@
-(defproject twarc "0.1.14"
+(defproject twarc "0.1.15"
   :description "Doing Quartz the right way"
   :url "https://github.com/prepor/twarc"
   :license {:name "Eclipse Public License",
@@ -10,7 +10,7 @@
                  [com.stuartsierra/component "1.0.0"]
                  [org.clojure/core.async "1.1.587"]
                  [org.clojure/java.jdbc "0.7.11"]]
-  :javac-options ["-source" "1.6" "-target" "1.6" "-g"]
+  :javac-options ["-source" "1.7" "-target" "1.7" "-g"]
   :java-source-paths ["java"]
   :deploy-repositories [["releases" :clojars]]
   :profiles {:dev {:dependencies [[org.slf4j/slf4j-api "1.7.30"]
