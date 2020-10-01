@@ -26,6 +26,6 @@ public class TwarcStatefullJob implements Job {
         IFn list = Clojure.var("clojure.core", "list*");
         ISeq args = (ISeq) list.invoke(scheduler.assoc(Keyword.intern("twarc", "execution-context"), context), m.get("state"), m.get("arguments"));
         Object result = f.applyTo(args);
-        m.put("state", result);
+        context.getJobDetail().getJobDataMap().put("state", result);
     }
 }
