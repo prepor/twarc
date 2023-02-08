@@ -136,12 +136,16 @@
     job))
 
 (defn delete-job
-  [scheduler & key]
-  (.deleteJob (:twarc/quartz scheduler) (apply job-key key)))
+  ([scheduler key]
+   (.deleteJob (:twarc/quartz scheduler) (job-key key)))
+  ([scheduler group key]
+   (.deleteJob (:twarc/quartz scheduler) (job-key group key))))
 
 (defn check-job-exists
-  [scheduler & key]
-  (.checkExists (:twarc/quartz scheduler) (apply job-key key)))
+  ([scheduler key]
+   (.checkExists (:twarc/quartz scheduler) (job-key key)))
+  ([scheduler group key]
+   (.checkExists (:twarc/quartz scheduler) (job-key group key))))
 
 (defn check-trigger-exists
   [scheduler & key]
