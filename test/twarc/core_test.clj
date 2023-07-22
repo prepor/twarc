@@ -1,7 +1,8 @@
 (ns twarc.core-test
   (:require [clojure.test :refer :all]
             [twarc.core :as twarc]
-            [twarc.test-utils :refer [async-res with-scheduler *scheduler*]]))
+            [twarc.test-utils :refer [async-res with-scheduler *scheduler*]])
+  (:import [org.quartz Trigger]))
 
 (twarc/defjob simple-job
   [scheduler first-name last-name]
@@ -62,6 +63,25 @@
                             :cron "*/10 * * * * ?"})
       (let [res (async-res listener)
             data-map (.getMergedJobDataMap res)]
+        (is (= ["Petr" "Yanovich"] (get data-map "arguments")))
+        (is (= nil (get data-map "state"))))))
+
+  (testing "trigger listeners"
+    (let [listener
+          (twarc/add-listener *scheduler*
+            {:key ["test-suite-trigger" "task-5-trigger"]}
+            :trigger-fired)]
+      (simple-job *scheduler* []
+        :job {:identity "task-5"
+              :group "test-suite"}
+        :trigger {:identity "task-5-trigger"
+                  :group "test-suite-trigger"
+                  :job-data {"arguments" ["Petr" "Yanovich"]}
+                  :cron "*/12 * * * * ?"})
+      (let [{:keys [trigger context]} (async-res listener)
+            data-map (.getMergedJobDataMap context)]
+        (is (instance? Trigger trigger))
+        (is (= (.getKey ^Trigger trigger) (twarc/trigger-key "test-suite-trigger" "task-5-trigger")))
         (is (= ["Petr" "Yanovich"] (get data-map "arguments")))
         (is (= nil (get data-map "state")))))))
 
