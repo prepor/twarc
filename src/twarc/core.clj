@@ -6,13 +6,12 @@
             [twarc.impl.core :as impl])
   (:import [org.quartz.impl StdSchedulerFactory]
            [org.quartz.impl.matchers OrMatcher NotMatcher NameMatcher KeyMatcher
-            AndMatcher StringMatcher GroupMatcher
-            EverythingMatcher]
+                                     AndMatcher StringMatcher GroupMatcher
+                                     EverythingMatcher]
            [org.quartz.utils Key]
            [org.quartz JobBuilder JobDataMap TriggerBuilder
-            SimpleScheduleBuilder CronScheduleBuilder JobListener JobKey TriggerKey]
+                       SimpleScheduleBuilder CronScheduleBuilder TriggerListener JobListener JobKey TriggerKey]
            [twarc TwarcJob TwarcStatefullJob]))
-
 
 (defn make-job
   "If state is passed, job will be stateful, i.e. state will be passed to the job
@@ -21,40 +20,40 @@
     :or {identity (impl/uuid)}
     :as opts}]
   (-> (JobBuilder/newJob (if (contains? opts :state) TwarcStatefullJob TwarcJob))
-      (.usingJobData (JobDataMap. {"ns" ns
-                                   "name" name
-                                   "arguments" arguments
-                                   "state" state}))
-      (cond->
-       group (.withIdentity identity group)
-       (not group) (.withIdentity identity)
-       desc (.withDescription desc)
-       durably (.storeDurably durably)
-       recovery (.requestRecovery recovery))
-      (.build)))
+    (.usingJobData (JobDataMap. {"ns" ns
+                                 "name" name
+                                 "arguments" arguments
+                                 "state" state}))
+    (cond->
+      group (.withIdentity identity group)
+      (not group) (.withIdentity identity)
+      desc (.withDescription desc)
+      durably (.storeDurably durably)
+      recovery (.requestRecovery recovery))
+    (.build)))
 
 (defn prepare-simple
   [{:keys [repeat interval misfire-handling]}]
   (-> (SimpleScheduleBuilder/simpleSchedule)
-      (cond->
-       (= :inf repeat) (.repeatForever)
-       (number? repeat) (.withRepeatCount repeat)
-       interval (.withIntervalInMilliseconds interval)
-       misfire-handling
-       (as-> schedule
-             (case misfire-handling
-               :fire-now
-               (.withMisfireHandlingInstructionFireNow schedule)
-               :ignore-misfires
-               (.withMisfireHandlingInstructionIgnoreMisfires schedule)
-               :next-with-existing-count
-               (.withMisfireHandlingInstructionNextWithExistingCount schedule)
-               :next-with-remaining-count
-               (.withMisfireHandlingInstructionNextWithRemainingCount schedule)
-               :now-with-existing-count
-               (.withMisfireHandlingInstructionNowWithExistingCount schedule)
-               :now-with-remaining-count
-               (.withMisfireHandlingInstructionNowWithRemainingCount schedule))))))
+    (cond->
+      (= :inf repeat) (.repeatForever)
+      (number? repeat) (.withRepeatCount repeat)
+      interval (.withIntervalInMilliseconds interval)
+      misfire-handling
+      (as-> schedule
+        (case misfire-handling
+          :fire-now
+          (.withMisfireHandlingInstructionFireNow schedule)
+          :ignore-misfires
+          (.withMisfireHandlingInstructionIgnoreMisfires schedule)
+          :next-with-existing-count
+          (.withMisfireHandlingInstructionNextWithExistingCount schedule)
+          :next-with-remaining-count
+          (.withMisfireHandlingInstructionNextWithRemainingCount schedule)
+          :now-with-existing-count
+          (.withMisfireHandlingInstructionNowWithExistingCount schedule)
+          :now-with-remaining-count
+          (.withMisfireHandlingInstructionNowWithRemainingCount schedule))))))
 
 (defn prepare-cron
   [options]
@@ -62,16 +61,16 @@
         (-> (if (:nonvalidated? options)
               (CronScheduleBuilder/cronScheduleNonvalidatedExpression (:expression options))
               (CronScheduleBuilder/cronSchedule (:expression options)))
-            (as-> schedule
-                  (case (:misfire-handling options)
-                    :do-nothing
-                    (.withMisfireHandlingInstructionDoNothing schedule)
-                    :fire-and-process
-                    (.withMisfireHandlingInstructionFireAndProceed schedule)
-                    :ignore-misfires
-                    (.withMisfireHandlingInstructionIgnoreMisfires schedule)))
-            (utils/?> (:time-zone options)
-                (.inTimeZone (:time-zone options))))
+          (as-> schedule
+            (case (:misfire-handling options)
+              :do-nothing
+              (.withMisfireHandlingInstructionDoNothing schedule)
+              :fire-and-process
+              (.withMisfireHandlingInstructionFireAndProceed schedule)
+              :ignore-misfires
+              (.withMisfireHandlingInstructionIgnoreMisfires schedule)))
+          (utils/?> (:time-zone options)
+            (.inTimeZone (:time-zone options))))
         (CronScheduleBuilder/cronSchedule options))))
 
 (defn make-trigger
@@ -93,21 +92,21 @@
            job-data priority simple cron]
     :or {identity (impl/uuid)}}]
   (-> (TriggerBuilder/newTrigger)
-      (cond->
-       group (.withIdentity identity group)
-       (not group) (.withIdentity identity)
-       for-job (.forJob for-job)
-       start-at (.startAt start-at)
-       end-at (.endAt end-at)
-       start-now (.startNow)
-       modified-by-calendars (as-> trigger
-                                   (doseq [c modified-by-calendars]
-                                     (.modifiedByCalendar trigger c)))
-       priority (.withPriority priority)
-       job-data (.usingJobData (JobDataMap. job-data))
-       simple (.withSchedule (prepare-simple simple))
-       cron (.withSchedule (prepare-cron cron)))
-      (.build)))
+    (cond->
+      group (.withIdentity identity group)
+      (not group) (.withIdentity identity)
+      for-job (.forJob for-job)
+      start-at (.startAt start-at)
+      end-at (.endAt end-at)
+      start-now (.startNow)
+      modified-by-calendars (as-> trigger
+                              (doseq [c modified-by-calendars]
+                                (.modifiedByCalendar trigger c)))
+      priority (.withPriority priority)
+      job-data (.usingJobData (JobDataMap. job-data))
+      simple (.withSchedule (prepare-simple simple))
+      cron (.withSchedule (prepare-cron cron)))
+    (.build)))
 
 (defn job-key
   ([group name] (JobKey. name group))
@@ -173,19 +172,19 @@
   ([] (make-scheduler {}))
   ([properties] (make-scheduler properties {}))
   ([properties options]
-     (let [n (get options :name (impl/uuid))
-           factory (StdSchedulerFactory.
-                    (->> (assoc properties
-                           :scheduler.instanceName n)
-                         (utils/map-keys #(str "org.quartz." (name %)))
-                         (impl/map->properties)))
-           quartz (.getScheduler factory)]
-       (when-let [cals (:calendars options)]
-         (doseq [[name cal replace update-triggers] cals]
-           (.addCalendar quartz name cal (boolean replace) (boolean update-triggers))))
-       (impl/map->Scheduler {:twarc/quartz quartz
-                             :twarc/name n
-                             :twarc/listeners (atom {})}))))
+   (let [n (get options :name (impl/uuid))
+         factory (StdSchedulerFactory.
+                   (->> (assoc properties
+                          :scheduler.instanceName n)
+                     (utils/map-keys #(str "org.quartz." (name %)))
+                     (impl/map->properties)))
+         quartz (.getScheduler factory)]
+     (when-let [cals (:calendars options)]
+       (doseq [[name cal replace update-triggers] cals]
+         (.addCalendar quartz name cal (boolean replace) (boolean update-triggers))))
+     (impl/map->Scheduler {:twarc/quartz quartz
+                           :twarc/name n
+                           :twarc/listeners (atom {})}))))
 
 ;; TODO should be extendable
 (defn matcher
@@ -205,31 +204,31 @@
   {:or [matcher1 matcher2 ... matcherN]}
 
   {:not matcher}
-  
+
   :everything
 
   :contains in :name and :group matchers also can be :equals, :ends-with and :starts-with "
   (cond
-   (:and spec) (reduce #(AndMatcher/and (matcher %1) (matcher %2)) (:and spec))
-   (:or spec) (reduce #(OrMatcher/or (matcher %1) (matcher %2)) (:or spec))
-   (:not spec) (NotMatcher/not (matcher (:not spec)))
-   (:group spec) (let [s (second (:group spec))]
-                   (case (first (:group spec))
-                     :contains (GroupMatcher/groupContains s)
-                     :ends-with (GroupMatcher/groupEndsWith s)
-                     :equals (GroupMatcher/groupEquals s)
-                     :starts-with (GroupMatcher/groupStartsWith s)))
-   (:name spec) (let [s (second (:name spec))]
-                  (case (first (:name spec))
-                    :contains (NameMatcher/nameContains s)
-                    :ends-with (NameMatcher/nameEndsWith s)
-                    :equals (NameMatcher/nameEquals s)
-                    :starts-with (NameMatcher/nameStartsWith s)))
-   (:key spec) (KeyMatcher/keyEquals (case scope
-                                       :job (apply job-key (:key spec))
-                                       :trigger (apply trigger-key (:key spec))
-                                       (Key. (second (:key spec)) (first (:key spec)))))
-   (= :everything spec) (EverythingMatcher/allJobs)))
+    (:and spec) (reduce #(AndMatcher/and (matcher %1) (matcher %2)) (:and spec))
+    (:or spec) (reduce #(OrMatcher/or (matcher %1) (matcher %2)) (:or spec))
+    (:not spec) (NotMatcher/not (matcher (:not spec)))
+    (:group spec) (let [s (second (:group spec))]
+                    (case (first (:group spec))
+                      :contains (GroupMatcher/groupContains s)
+                      :ends-with (GroupMatcher/groupEndsWith s)
+                      :equals (GroupMatcher/groupEquals s)
+                      :starts-with (GroupMatcher/groupStartsWith s)))
+    (:name spec) (let [s (second (:name spec))]
+                   (case (first (:name spec))
+                     :contains (NameMatcher/nameContains s)
+                     :ends-with (NameMatcher/nameEndsWith s)
+                     :equals (NameMatcher/nameEquals s)
+                     :starts-with (NameMatcher/nameStartsWith s)))
+    (:key spec) (KeyMatcher/keyEquals (case scope
+                                        :job (apply job-key (:key spec))
+                                        :trigger (apply trigger-key (:key spec))
+                                        (Key. (second (:key spec)) (first (:key spec)))))
+    (= :everything spec) (EverythingMatcher/allJobs)))
 
 (defn add-listener
   "Registers a Quartz listener and returns a core.async channel with events from the
@@ -240,43 +239,72 @@
   http://www.quartz-scheduler.org/api/2.2.1/org/quartz/JobListener.html)
   :execution-vetoed, :to-be-executed, :was-executed
 
+  Possible listener-types: (TriggerListener see
+  http://www.quartz-scheduler.org/api/2.2.1/org/quartz/TriggerListener.html)
+  :trigger-fired :veto-job-execution :trigger-misfire :trigger-complete
+
   For matcher-spec syntax, see matcher"
   ([scheduler matcher-spec listener-type]
-     (add-listener scheduler matcher-spec listener-type nil))
+   (add-listener scheduler matcher-spec listener-type nil))
   ([scheduler matcher-spec listener-type buf-or-n]
-     (let [ch (a/chan buf-or-n)
-           n (impl/uuid)
-           listener-scope (case listener-type
-                            (:execution-vetoed :to-be-executed :was-executed)
-                            :job)
-           ;; TODO implement Trigger and Scheduler listeners
-           listener (case listener-scope
-                      :job
-                      (reify JobListener
-                        (getName [_] n)
-                        (jobExecutionVetoed [_ context]
-                          (when (= :execution-vetoed listener-type)
-                            (a/>!! ch context)))
-                        (jobToBeExecuted [_ context]
-                          (when (= :to-be-executed listener-type)
-                            (a/>!! ch context)))
-                        (jobWasExecuted [_ context exc]
-                          (when (= :was-executed listener-type)
-                            (a/>!! ch context)))))
-           built-matcher (matcher matcher-spec listener-scope)]
-       (-> (:twarc/quartz scheduler)
-           (.getListenerManager)
-           (.addJobListener listener built-matcher))
-       (swap! (:twarc/listeners scheduler)
-              assoc ch {:listener-name n :listener-type listener-type})
-       ch)))
+   (let [ch (a/chan buf-or-n)
+         n (impl/uuid)
+         listener-scope (case listener-type
+                          (:execution-vetoed :to-be-executed :was-executed)
+                          :job
+                          (:trigger-fired :veto-job-execution :trigger-misfire :trigger-complete)
+                          :trigger)
+         ;; TODO implement Scheduler listeners
+         listener (case listener-scope
+                    :job
+                    (reify JobListener
+                      (getName [_] n)
+                      (jobExecutionVetoed [_ context]
+                        (when (= :execution-vetoed listener-type)
+                          (a/>!! ch context)))
+                      (jobToBeExecuted [_ context]
+                        (when (= :to-be-executed listener-type)
+                          (a/>!! ch context)))
+                      (jobWasExecuted [_ context exc]
+                        (when (= :was-executed listener-type)
+                          (a/>!! ch context))))
+                    :trigger
+                    (reify TriggerListener
+                      (getName [_] n)
+                      (triggerFired [_ trigger context]
+                        (when (= :trigger-fired listener-type)
+                          (a/>!! ch {:trigger trigger :context context})))
+                      (vetoJobExecution [_ trigger context]
+                        (when (= :veto-job-execution listener-type)
+                          (a/>!! ch {:trigger trigger :context context})))
+                      (triggerMisfired [_ trigger]
+                        (when (= :trigger-misfire listener-type)
+                          (a/>!! ch {:trigger trigger})))
+                      (triggerComplete [_ trigger context misfire-code]
+                        (when (= :trigger-complete listener-type)
+                          (a/>!! ch {:trigger trigger :context context :misfire-code misfire-code})))))
+         built-matcher (matcher matcher-spec listener-scope)
+         m (-> (:twarc/quartz scheduler)
+             (.getListenerManager))]
+     (case listener-scope
+       :job
+       (.addJobListener m listener built-matcher)
+
+       :trigger
+       (.addTriggerListener m listener built-matcher))
+     (swap! (:twarc/listeners scheduler)
+       assoc ch {:listener-name n :listener-type listener-type})
+     ch)))
 
 (defn remove-listener
   [scheduler listener]
   (let [m (-> (:twarc/quartz scheduler)
-              (.getListenerManager))
+            (.getListenerManager))
         meta (-> scheduler :twarc/listeners deref (get listener))]
     (case (:listener-type meta)
       (:execution-vetoed :to-be-executed :was-executed)
-      (.removeJobListener m (:listener-name meta)))
+      (.removeJobListener m (:listener-name meta))
+
+      (:trigger-fired :veto-job-execution :trigger-misfire :trigger-complete)
+      (.removeTriggerListener m (:listener-name meta)))
     (swap! (:twarc/listeners scheduler) dissoc listener)))
