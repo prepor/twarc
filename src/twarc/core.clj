@@ -6,11 +6,11 @@
             [twarc.impl.core :as impl])
   (:import [org.quartz.impl StdSchedulerFactory]
            [org.quartz.impl.matchers OrMatcher NotMatcher NameMatcher KeyMatcher
-                                     AndMatcher StringMatcher GroupMatcher
-                                     EverythingMatcher]
+            AndMatcher StringMatcher GroupMatcher
+            EverythingMatcher]
            [org.quartz.utils Key]
-           [org.quartz JobBuilder JobDataMap TriggerBuilder
-                       SimpleScheduleBuilder CronScheduleBuilder TriggerListener JobListener JobKey TriggerKey]
+           [org.quartz JobBuilder JobDataMap TriggerBuilder 
+            SimpleScheduleBuilder CronScheduleBuilder TriggerListener JobListener JobKey TriggerKey]
            [twarc TwarcJob TwarcStatefullJob]))
 
 (defn make-job
@@ -20,40 +20,40 @@
     :or {identity (impl/uuid)}
     :as opts}]
   (-> (JobBuilder/newJob (if (contains? opts :state) TwarcStatefullJob TwarcJob))
-    (.usingJobData (JobDataMap. {"ns" ns
-                                 "name" name
-                                 "arguments" arguments
-                                 "state" state}))
-    (cond->
-      group (.withIdentity identity group)
-      (not group) (.withIdentity identity)
-      desc (.withDescription desc)
-      durably (.storeDurably durably)
-      recovery (.requestRecovery recovery))
-    (.build)))
+      (.usingJobData (JobDataMap. {"ns" ns
+                                   "name" name
+                                   "arguments" arguments
+                                   "state" state}))
+      (cond->
+        group (.withIdentity identity group)
+        (not group) (.withIdentity identity)
+        desc (.withDescription desc)
+        durably (.storeDurably durably)
+        recovery (.requestRecovery recovery))
+      (.build)))
 
 (defn prepare-simple
   [{:keys [repeat interval misfire-handling]}]
   (-> (SimpleScheduleBuilder/simpleSchedule)
-    (cond->
-      (= :inf repeat) (.repeatForever)
-      (number? repeat) (.withRepeatCount repeat)
-      interval (.withIntervalInMilliseconds interval)
-      misfire-handling
-      (as-> schedule
-        (case misfire-handling
-          :fire-now
-          (.withMisfireHandlingInstructionFireNow schedule)
-          :ignore-misfires
-          (.withMisfireHandlingInstructionIgnoreMisfires schedule)
-          :next-with-existing-count
-          (.withMisfireHandlingInstructionNextWithExistingCount schedule)
-          :next-with-remaining-count
-          (.withMisfireHandlingInstructionNextWithRemainingCount schedule)
-          :now-with-existing-count
-          (.withMisfireHandlingInstructionNowWithExistingCount schedule)
-          :now-with-remaining-count
-          (.withMisfireHandlingInstructionNowWithRemainingCount schedule))))))
+      (cond->
+        (= :inf repeat) (.repeatForever)
+        (number? repeat) (.withRepeatCount repeat)
+        interval (.withIntervalInMilliseconds interval)
+        misfire-handling
+        (as-> schedule
+              (case misfire-handling
+                :fire-now
+                (.withMisfireHandlingInstructionFireNow schedule)
+                :ignore-misfires
+                (.withMisfireHandlingInstructionIgnoreMisfires schedule)
+                :next-with-existing-count
+                (.withMisfireHandlingInstructionNextWithExistingCount schedule)
+                :next-with-remaining-count
+                (.withMisfireHandlingInstructionNextWithRemainingCount schedule)
+                :now-with-existing-count
+                (.withMisfireHandlingInstructionNowWithExistingCount schedule)
+                :now-with-remaining-count
+                (.withMisfireHandlingInstructionNowWithRemainingCount schedule))))))
 
 (defn prepare-cron
   [options]
@@ -61,16 +61,16 @@
         (-> (if (:nonvalidated? options)
               (CronScheduleBuilder/cronScheduleNonvalidatedExpression (:expression options))
               (CronScheduleBuilder/cronSchedule (:expression options)))
-          (as-> schedule
-            (case (:misfire-handling options)
-              :do-nothing
-              (.withMisfireHandlingInstructionDoNothing schedule)
-              :fire-and-process
-              (.withMisfireHandlingInstructionFireAndProceed schedule)
-              :ignore-misfires
-              (.withMisfireHandlingInstructionIgnoreMisfires schedule)))
-          (utils/?> (:time-zone options)
-            (.inTimeZone (:time-zone options))))
+            (as-> schedule
+                  (case (:misfire-handling options)
+                    :do-nothing
+                    (.withMisfireHandlingInstructionDoNothing schedule)
+                    :fire-and-process
+                    (.withMisfireHandlingInstructionFireAndProceed schedule)
+                    :ignore-misfires
+                    (.withMisfireHandlingInstructionIgnoreMisfires schedule)))
+            (utils/?> (:time-zone options)
+                      (.inTimeZone (:time-zone options))))
         (CronScheduleBuilder/cronSchedule options))))
 
 (defn make-trigger
@@ -92,21 +92,21 @@
            job-data priority simple cron]
     :or {identity (impl/uuid)}}]
   (-> (TriggerBuilder/newTrigger)
-    (cond->
-      group (.withIdentity identity group)
-      (not group) (.withIdentity identity)
-      for-job (.forJob for-job)
-      start-at (.startAt start-at)
-      end-at (.endAt end-at)
-      start-now (.startNow)
-      modified-by-calendars (as-> trigger
-                              (doseq [c modified-by-calendars]
-                                (.modifiedByCalendar trigger c)))
-      priority (.withPriority priority)
-      job-data (.usingJobData (JobDataMap. job-data))
-      simple (.withSchedule (prepare-simple simple))
-      cron (.withSchedule (prepare-cron cron)))
-    (.build)))
+      (cond->
+        group (.withIdentity identity group)
+        (not group) (.withIdentity identity)
+        for-job (.forJob for-job)
+        start-at (.startAt start-at)
+        end-at (.endAt end-at)
+        start-now (.startNow)
+        modified-by-calendars (as-> trigger
+                                    (doseq [c modified-by-calendars]
+                                      (.modifiedByCalendar trigger c)))
+        priority (.withPriority priority)
+        job-data (.usingJobData (JobDataMap. job-data))
+        simple (.withSchedule (prepare-simple simple))
+        cron (.withSchedule (prepare-cron cron)))
+      (.build)))
 
 (defn job-key
   ([group name] (JobKey. name group))
@@ -176,8 +176,8 @@
          factory (StdSchedulerFactory.
                    (->> (assoc properties
                           :scheduler.instanceName n)
-                     (utils/map-keys #(str "org.quartz." (name %)))
-                     (impl/map->properties)))
+                        (utils/map-keys #(str "org.quartz." (name %)))
+                        (impl/map->properties)))
          quartz (.getScheduler factory)]
      (when-let [cals (:calendars options)]
        (doseq [[name cal replace update-triggers] cals]
