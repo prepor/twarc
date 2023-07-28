@@ -68,7 +68,7 @@
 (deftest remove-listener-test
   (testing "Remove a listener"
     (let [listener (twarc/add-listener *scheduler*
-                                       {:everything true} :to-be-executed)]
+                                       :everything :to-be-executed)]
       (twarc/remove-listener *scheduler* listener)
       (is (empty? (-> *scheduler* :twarc/listeners deref))))))
 
